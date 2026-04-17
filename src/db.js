@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
+  user_level INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -35,7 +36,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_vault_entries_updated_at ON vault_entries;
-
 CREATE TRIGGER trg_vault_entries_updated_at
 BEFORE UPDATE ON vault_entries
 FOR EACH ROW

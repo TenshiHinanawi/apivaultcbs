@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 const { query } = require("../db");
 const { config } = require("../config");
+const { authRequired } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -20,6 +21,23 @@ function signToken(user) {
     { expiresIn: config.jwtExpiresIn }
   );
 }
+
+router.get("/me", authRequired, async (req, res, next) => {
+  try {
+    const result = await query(
+      "SELECT id, email, user_level, is_admin, created_at FROM users WHERE id = $1",
+      [req.user.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    return res.json(result.rows[0]);
+  } catch (error) {
+    return next(error);
+  }
+});
 
 router.post("/register", async (req, res, next) => {
   try {

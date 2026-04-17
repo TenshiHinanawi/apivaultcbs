@@ -44,12 +44,7 @@ router.post("/register", async (req, res, next) => {
 
     return res.status(201).json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        user_level: user.user_level,
-        createdAt: user.created_at
-      }
+      user: { id: user.id, email: user.email, user_level: user.user_level, createdAt: user.created_at }
     });
   } catch (error) {
     return next(error);
@@ -80,11 +75,7 @@ router.post("/login", async (req, res, next) => {
 
     return res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        user_level: user.user_level
-      }
+      user: { id: user.id, email: user.email, user_level: user.user_level }
     });
   } catch (error) {
     return next(error);

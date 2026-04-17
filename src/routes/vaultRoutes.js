@@ -1,8 +1,7 @@
 const express = require("express");
 const { z } = require("zod");
-
 const { query } = require("../db");
-const { authRequired } = require("../middleware/auth");
+const { authRequired, requireLevel } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -18,9 +17,13 @@ const updateVaultEntrySchema = z
     content: z.string().min(1).optional(),
     entryType: z.string().trim().min(1).max(40).optional()
   })
-  .refine((data) => data.title !== undefined || data.content !== undefined || data.entryType !== undefined, {
-    message: "At least one field is required."
-  });
+  .refine(
+    (data) =>
+      data.title !== undefined ||
+      data.content !== undefined ||
+      data.entryType !== undefined,
+    { message: "At least one field is required." }
+  );
 
 function parseEntryId(rawId) {
   const parsedId = Number.parseInt(rawId, 10);
@@ -65,6 +68,20 @@ router.post("/", async (req, res, next) => {
   }
 });
 
+router.get("/admin", requireLevel(5), async (req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT id, user_id AS "userId", title, content, entry_type AS "entryType", created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM vault_entries
+       ORDER BY updated_at DESC`
+    );
+
+    return res.json({ items: result.rows });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.get("/:id", async (req, res, next) => {
   try {
     const entryId = parseEntryId(req.params.id);
@@ -72,7 +89,6 @@ router.get("/:id", async (req, res, next) => {
       return res.status(400).json({ error: "Invalid vault entry id." });
     }
 
-    // Intentionally vulnerable (IDOR): ownership check is skipped on purpose.
     const result = await query(
       `SELECT id, user_id AS "userId", title, content, entry_type AS "entryType", created_at AS "createdAt", updated_at AS "updatedAt"
        FROM vault_entries
@@ -99,7 +115,6 @@ router.patch("/:id", async (req, res, next) => {
 
     const parsed = updateVaultEntrySchema.parse(req.body);
 
-    // Intentionally vulnerable (IDOR): ownership check is skipped on purpose.
     const result = await query(
       `UPDATE vault_entries
        SET title = COALESCE($1, title),
@@ -127,8 +142,10 @@ router.delete("/:id", async (req, res, next) => {
       return res.status(400).json({ error: "Invalid vault entry id." });
     }
 
-    // Intentionally vulnerable (IDOR): ownership check is skipped on purpose.
-    const result = await query("DELETE FROM vault_entries WHERE id = $1 RETURNING id", [entryId]);
+    const result = await query(
+      "DELETE FROM vault_entries WHERE id = $1 RETURNING id",
+      [entryId]
+    );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "Vault entry not found." });

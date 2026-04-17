@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   user_level INTEGER NOT NULL DEFAULT 1,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -54,8 +55,4 @@ async function close() {
   await pool.end();
 }
 
-module.exports = {
-  initDb,
-  query,
-  close
-};
+module.exports = { initDb, query, close };
